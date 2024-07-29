@@ -77,7 +77,7 @@ repo_name=$(basename $repo_url .git)
 # Define paths
 script_dir=$(pwd)
 output_dir="$script_dir/output"
-repo_path=$(mktemp -d -t "${repo_name}_repo-XXXXXX")
+repo_path=$(mktemp -d -t "${repo_name}_repo")
 datetime=$(date +"%Y_%m_%d_%H_%M_%S")
 
 # Create necessary directories
@@ -105,15 +105,16 @@ output_file="$output_dir/${repo_name}_${last_commit_hash}_${datetime}.txt"
 compressed_output_file="${output_file}.gz"
 
 # Buffer for aggregated content
-buffer=""
+buffer="\n"
 
 # Function to dump the contents of a file into the buffer
 dump_file() {
     local file=$1
     if [ -f "$file" ]; then
+        buffer+="\n=========================\n"
         buffer+="File: $file\n"
         buffer+="=========================\n"
-        buffer+="$(cat "$file")\n\n"
+        buffer+="$(cat "$file")"
     fi
 }
 
@@ -126,6 +127,7 @@ files=$(find . -type f \
     ! -path '*/node_modules/*' \
     ! -path '*/build/*' \
     ! -path '*/output/*' \
+    ! -path '*/.yarn/*' \
     ! -path '*/temp/*' \
     ! -path '*/.vscode/*' \
     ! -name '*-lock*' \
@@ -139,7 +141,13 @@ files=$(find . -type f \
     ! -path '*/images/*' \
     ! -path '*/fonts/*' \
     ! -path '*/videos/*' \
-    ! -name '*.jpg' -a ! -name '*.png' -a ! -name '*.gif' -a ! -name '*.mp4' -a ! -name '*.svg' \
+    ! -name '*.jpg' \
+    ! -name '*.jpeg' \
+    ! -name '*.png' \
+    ! -name '*.gif' \
+    ! -name '*.mp4' \
+    ! -name '*.svg' \
+    ! -name '*.ico' \
     | sort)
 
 file_count=$(echo "$files" | wc -l)
@@ -157,6 +165,7 @@ echo
 echo "[AGGREGATE] Generating directory tree..."
 buffer+="\nDirectory Tree:\n"
 buffer+="$(tree -v -L 24 --charset utf-8)"
+buffer+="\n"
 if [ $? -eq 0 ]; then
     echo "[AGGREGATE] Directory tree added to the buffer."
 else
@@ -184,7 +193,15 @@ for file in $files; do
 done
 
 # Process .github directory files last
-github_files=$(find . -type f -path '*/.github/*' | sort)
+github_files=$(find . -type f -path '*/.github/*' \
+    ! -name '*.jpg' \
+    ! -name '*.jpeg' \
+    ! -name '*.png' \
+    ! -name '*.gif' \
+    ! -name '*.mp4' \
+    ! -name '*.svg' \
+    ! -name '*.ico' \
+    | sort)
 for github_file in $github_files; do
     dump_file "$github_file"
 done
