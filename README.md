@@ -2,7 +2,7 @@
 
 ## Description
 
-This script clones a specified GitHub repository into a temporary directory, aggregates the contents of all files (excluding specified files and directories) into a single `.txt` file, compresses the `.txt` file, and saves both the `.txt` and `.txt.gz` files in an output directory. Additionally, it generates a directory tree listing up to 3 levels deep and includes it in the `.txt` file. The script ensures that the temporary repository directory is cleaned up after execution.
+This script clones a specified GitHub repository into a temporary directory, aggregates the contents of all files (excluding specified files and directories) into a single `.txt` file, compresses the `.txt` file, and saves both the `.txt` and `.txt.gz` files in an output directory. Additionally, it generates a directory tree listing up to 24 levels deep and includes it in the `.txt` file. The script ensures that the temporary repository directory is cleaned up after execution.
 
 ## Features
 

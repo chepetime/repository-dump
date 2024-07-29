@@ -156,7 +156,7 @@ buffer+="=========================\n"
 echo
 echo "[AGGREGATE] Generating directory tree..."
 buffer+="\nDirectory Tree:\n"
-buffer+="$(tree -v -L 3 --charset utf-8)"
+buffer+="$(tree -v -L 24 --charset utf-8)"
 if [ $? -eq 0 ]; then
     echo "[AGGREGATE] Directory tree added to the buffer."
 else
