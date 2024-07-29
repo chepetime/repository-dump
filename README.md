@@ -45,6 +45,22 @@ This script clones a specified GitHub repository into a temporary directory, agg
 - The aggregated contents and directory tree are saved in a `.txt` file.
 - The `.txt` file is compressed into a `.gz` file.
 
+## Tests
+
+Two tests were added to this project.
+
+The first one, `test-script.sh`, will download `lodash/lodash`, which is a mid size repository.
+
+```sh
+./tests/test-script.sh
+```
+
+The first one, `test-script-stress.sh`, will download `facebook/react`, which is a large size repository.
+
+```sh
+./tests/test-script.sh
+```
+
 ## Contributing
 
 If you have suggestions for improving this script or find any issues, feel free to create an issue or submit a pull request.
