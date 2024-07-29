@@ -76,7 +76,7 @@ repo_name=$(basename $repo_url .git)
 
 # Define paths
 script_dir=$(pwd)
-output_dir="$script_dir/output"
+output_dir="$script_dir/$repo_name-dump"
 repo_path=$(mktemp -d -t "${repo_name}_repo")
 datetime=$(date +"%Y_%m_%d_%H_%M_%S")
 
