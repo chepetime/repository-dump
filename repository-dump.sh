@@ -153,11 +153,10 @@ files=$(find . -type f \
 file_count=$(echo "$files" | wc -l)
 
 # Add repository metadata to the buffer
-buffer+="Repository: $repo_name\n"
-buffer+="Last Commit Date: $last_commit_date\n"
-buffer+="Last Commit Hash: $last_commit_hash\n"
+buffer+="Repository:          $repo_url\n"
+buffer+="Last Commit Date:    $last_commit_date\n"
+buffer+="Last Commit Hash:    $last_commit_hash\n"
 buffer+="Last Commit Message: $last_commit_message\n"
-buffer+="Number of Files: $file_count\n"
 buffer+="=========================\n"
 
 # Generate directory tree and add to the buffer
