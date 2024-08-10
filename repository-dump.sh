@@ -64,13 +64,6 @@ else
     repo_url=$1
 fi
 
-# Check if the provided URL is valid
-if [[ ! $repo_url =~ ^https:\/\/github\.com\/[^\/]+\/[^\/]+(\.git)?$ ]]; then
-    echo
-    echo "[CHECK] Invalid GitHub repository URL. Please provide a valid URL."
-    exit 1
-fi
-
 # Extract the repository name
 repo_name=$(basename $repo_url .git)
 
