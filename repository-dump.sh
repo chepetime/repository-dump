@@ -75,7 +75,7 @@ repo_name=$(basename $repo_url .git)
 
 # Define paths
 script_dir=$(pwd)
-output_dir="$script_dir/$repo_name-dump"
+output_dir="$script_dir/repo-dump-$repo_name"
 repo_path=$(mktemp -d -t "${repo_name}_repo")
 datetime=$(date +"%Y_%m_%d_%H_%M_%S")
 
@@ -174,11 +174,15 @@ if [ -d "$repo_path/$path" ]; then
 
     # Process all files in the directory
     for file in $files; do
-        echo "[DEBUG] Processing file: $file"
-        buffer+="\n=========================\n"
-        buffer+="File: $file\n"
-        buffer+="=========================\n"
-        buffer+="$(cat "$file")"
+        if [ -f "$file" ]; then
+            echo "[DEBUG] Processing file: $file"
+            buffer+="\n=========================\n"
+            buffer+="File: $file\n"
+            buffer+="=========================\n"
+            buffer+="$(cat "$file")"
+        else
+            echo "[WARN] File disappeared during processing: $file"
+        fi
     done
 
     echo "[DEBUG] Finished processing files, writing buffer to output file..."
@@ -239,4 +243,4 @@ echo "[COMPLETE] Repository contents have been dumped into $output_file and comp
 success_exit
 
 echo
-echo "[CLEANUP] Temporary repository has been deleted."
+echo "[CLEANUP] Temporary repository has been deleted

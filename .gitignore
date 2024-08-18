@@ -53,3 +53,6 @@ coverage/
 *_tree.log
 *.txt
 *.txt.gz
+
+*-dump/
+repo-dump-*/
