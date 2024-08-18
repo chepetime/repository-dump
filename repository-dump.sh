@@ -4,7 +4,7 @@
 # This script clones a specified GitHub repository into a temporary directory,
 # aggregates the contents of all files (excluding specified files and directories) into a single .txt file,
 # compresses the .txt file, and saves both the .txt and .txt.gz files in an output directory.
-# It also generates a directory tree listing up to 3 levels deep and adds it to the .txt file.
+# It also generates a directory tree listing up to 24 levels deep and adds it to the .txt file.
 # It ensures the temporary repository directory is cleaned up after execution.
 
 echo
@@ -64,6 +64,12 @@ else
     repo_url=$1
 fi
 
+# Check if a branch is provided, default to main/master
+branch=${2:-main}
+
+# Check if a directory or file is provided, default to root
+path=${3:-.}
+
 # Extract the repository name
 repo_name=$(basename $repo_url .git)
 
@@ -84,138 +90,146 @@ trap cleanup EXIT
 check_dependencies
 
 echo
-echo "[CLONE] Cloning repository $repo_url..."
-git clone --depth=1 "$repo_url" "$repo_path" || error_exit
+echo "[CLONE] Cloning repository $repo_url on branch $branch..."
+git ls-remote --heads "$repo_url" "$branch" | grep -q "$branch"
+if [ $? -ne 0 ]; then
+    echo "[ERROR] The specified branch '$branch' does not exist in the repository."
+    error_exit
+fi
+
+git clone --depth=1 --branch "$branch" "$repo_url" "$repo_path" || error_exit
 echo "[CLONE] Repository cloned successfully."
 
-cd "$repo_path" || error_exit
-last_commit_hash=$(git rev-parse --short HEAD)
-last_commit_date=$(git log -1 --format=%cd)
-last_commit_message=$(git log -1 --format=%B)
+# Check if the specified path exists
+if [ ! -e "$repo_path/$path" ]; then
+    echo "[ERROR] Specified path '$path' does not exist in the repository."
+    error_exit
+fi
 
-# Define the output file name
-output_file="$output_dir/${repo_name}_${last_commit_hash}_${datetime}.txt"
-compressed_output_file="${output_file}.gz"
+# Process depending on whether the path is a directory or a file
+if [ -d "$repo_path/$path" ]; then
+    echo "[DEBUG] Path is a directory, processing contents..."
+    cd "$repo_path/$path" || error_exit
 
-# Buffer for aggregated content
-buffer="\n"
+    # Define the output file name
+    output_file="$output_dir/${repo_name}_${branch}_${datetime}.txt"
+    compressed_output_file="${output_file}.gz"
 
-# Function to dump the contents of a file into the buffer
-dump_file() {
-    local file=$1
-    if [ -f "$file" ]; then
+    # Buffer for aggregated content
+    buffer="\n"
+
+    echo
+    echo "[AGGREGATE] Finding and processing files..."
+
+    # Find files based on the criteria
+    files=$(find . -type f \
+        ! -path '*/.git/*' \
+        ! -path '*/node_modules/*' \
+        ! -path '*/build/*' \
+        ! -path '*/output/*' \
+        ! -path '*/.yarn/*' \
+        ! -path '*/temp/*' \
+        ! -path '*/.vscode/*' \
+        ! -name '*-lock*' \
+        ! -name '.env' \
+        ! -name 'pnpm-lock.yaml' \
+        ! -name 'yarn.lock' \
+        ! -name 'package-lock.json' \
+        ! -name '.*.swp' \
+        ! -name '.DS_Store' \
+        ! -name 'Thumbs.db' \
+        ! -path '*/images/*' \
+        ! -path '*/fonts/*' \
+        ! -path '*/videos/*' \
+        ! -name '*.jpg' \
+        ! -name '*.jpeg' \
+        ! -name '*.png' \
+        ! -name '*.gif' \
+        ! -name '*.mp4' \
+        ! -name '*.svg' \
+        ! -name '*.ico' \
+        | sort)
+
+    file_count=$(echo "$files" | wc -l)
+    echo "[DEBUG] Number of files found: $file_count"
+
+    # Add repository metadata to the buffer
+    buffer+="Repository:          $repo_url\n"
+    buffer+="Branch:              $branch\n"
+    buffer+="Directory:           $path\n"
+    buffer+="=========================\n"
+
+    # Generate directory tree and add to the buffer
+    echo
+    echo "[AGGREGATE] Generating directory tree..."
+    tree_output=$(tree -v -L 24 --charset utf-8)
+    if [ $? -eq 0 ]; then
+        buffer+="$tree_output"
+        buffer+="\n"
+        echo "[AGGREGATE] Directory tree added to the buffer."
+    else
+        echo "[ERROR] Failed to generate directory tree."
+        error_exit
+    fi
+
+    # Process all files in the directory
+    for file in $files; do
+        echo "[DEBUG] Processing file: $file"
         buffer+="\n=========================\n"
         buffer+="File: $file\n"
         buffer+="=========================\n"
         buffer+="$(cat "$file")"
+    done
+
+    echo "[DEBUG] Finished processing files, writing buffer to output file..."
+
+    echo
+    echo "[WRITE] Writing the buffer to the output file..."
+    echo -e "$buffer" > "$output_file"
+    if [ $? -eq 0 ]; then
+        echo "[WRITE] Buffer written to $output_file."
+    else
+        echo "[ERROR] Failed to write the buffer to the output file."
+        error_exit
     fi
-}
 
-echo
-echo "[AGGREGATE] Finding and processing files..."
-
-# Find files based on the criteria
-files=$(find . -type f \
-    ! -path '*/.git/*' \
-    ! -path '*/node_modules/*' \
-    ! -path '*/build/*' \
-    ! -path '*/output/*' \
-    ! -path '*/.yarn/*' \
-    ! -path '*/temp/*' \
-    ! -path '*/.vscode/*' \
-    ! -name '*-lock*' \
-    ! -name '.env' \
-    ! -name 'pnpm-lock.yaml' \
-    ! -name 'yarn.lock' \
-    ! -name 'package-lock.json' \
-    ! -name '.*.swp' \
-    ! -name '.DS_Store' \
-    ! -name 'Thumbs.db' \
-    ! -path '*/images/*' \
-    ! -path '*/fonts/*' \
-    ! -path '*/videos/*' \
-    ! -name '*.jpg' \
-    ! -name '*.jpeg' \
-    ! -name '*.png' \
-    ! -name '*.gif' \
-    ! -name '*.mp4' \
-    ! -name '*.svg' \
-    ! -name '*.ico' \
-    | sort)
-
-file_count=$(echo "$files" | wc -l)
-
-# Add repository metadata to the buffer
-buffer+="Repository:          $repo_url\n"
-buffer+="Last Commit Date:    $last_commit_date\n"
-buffer+="Last Commit Hash:    $last_commit_hash\n"
-buffer+="Last Commit Message: $last_commit_message\n"
-buffer+="=========================\n"
-
-# Generate directory tree and add to the buffer
-echo
-echo "[AGGREGATE] Generating directory tree..."
-buffer+="\nDirectory Tree:\n"
-buffer+="$(tree -v -L 24 --charset utf-8)"
-buffer+="\n"
-if [ $? -eq 0 ]; then
-    echo "[AGGREGATE] Directory tree added to the buffer."
-else
-    echo "[ERROR] Failed to generate directory tree."
-    error_exit
-fi
-
-# Ensure README.md files are processed first
-readmes=$(echo "$files" | grep -i '/README.md$')
-files=$(echo "$files" | grep -vi '/README.md$')
-
-# Process README.md files first
-for readme in $readmes; do
-    dump_file "$readme"
-done
-
-# Process the remaining files
-for file in $files; do
-    # Skip files to be excluded but allow .env.example
-    if [[ "$file" == *"/.env.example" ]]; then
-        dump_file "$file"
-    elif [[ "$file" != *"/.env" && "$file" != *"-lock" && "$file" != *"/.github/*" ]]; then
-        dump_file "$file"
+    echo
+    echo "[COMPRESS] Compressing the output file..."
+    gzip -c "$output_file" > "$compressed_output_file" || error_exit
+    if [ $? -eq 0 ]; then
+        echo "[COMPRESS] Output file compressed to $compressed_output_file."
+    else
+        echo "[ERROR] Failed to compress the output file."
+        error_exit
     fi
-done
 
-# Process .github directory files last
-github_files=$(find . -type f -path '*/.github/*' \
-    ! -name '*.jpg' \
-    ! -name '*.jpeg' \
-    ! -name '*.png' \
-    ! -name '*.gif' \
-    ! -name '*.mp4' \
-    ! -name '*.svg' \
-    ! -name '*.ico' \
-    | sort)
-for github_file in $github_files; do
-    dump_file "$github_file"
-done
-
-echo
-echo "[WRITE] Writing the buffer to the output file..."
-echo -e "$buffer" > "$output_file"
-if [ $? -eq 0 ]; then
-    echo "[WRITE] Buffer written to $output_file."
 else
-    echo "[ERROR] Failed to write the buffer to the output file."
-    error_exit
-fi
+    # If the path is a file, simply dump its contents
+    echo "[DEBUG] Path is a file, dumping its contents..."
 
-echo
-echo "[COMPRESS] Compressing the output file..."
-gzip -c "$output_file" > "$compressed_output_file" || error_exit
-if [ $? -eq 0 ]; then
-    echo "[COMPRESS] Output file compressed to $compressed_output_file."
-else
-    echo "[ERROR] Failed to compress the output file."
-    error_exit
+    output_file="$output_dir/${repo_name}_${branch}_${datetime}_$(basename "$path").txt"
+    compressed_output_file="${output_file}.gz"
+
+    echo
+    echo "[WRITE] Writing the file to the output file..."
+    echo "File: $path" > "$output_file"
+    cat "$repo_path/$path" >> "$output_file"
+    if [ $? -eq 0 ]; then
+        echo "[WRITE] File written to $output_file."
+    else
+        echo "[ERROR] Failed to write the file to the output file."
+        error_exit
+    fi
+
+    echo
+    echo "[COMPRESS] Compressing the output file..."
+    gzip -c "$output_file" > "$compressed_output_file" || error_exit
+    if [ $? -eq 0 ]; then
+        echo "[COMPRESS] Output file compressed to $compressed_output_file."
+    else
+        echo "[ERROR] Failed to compress the output file."
+        error_exit
+    fi
 fi
 
 echo

@@ -27,11 +27,16 @@ This script clones a specified GitHub repository into a temporary directory, agg
    ```sh
    chmod +x script.sh
    ```
-4. Run the script by providing a GitHub repository URL:
+4. Run the script by providing a GitHub repository URLL, with optional branch and directory arguments:
+
    ```sh
-   ./script.sh https://github.com/username/repository.git
+   ./script.sh https://github.com/username/repository.git [branch] [directory]
    ```
-   Alternatively, you can run the script without arguments and provide the URL when prompted.
+
+   - _branch_ (optional): Specify the branch to clone. Defaults to main or master.
+   - _directory_ (optional): Specify the directory within the repository to aggregate. Defaults to the repository root.
+
+Alternatively, you can run the script without arguments and provide the URL when prompted.
 
 ### Example
 
